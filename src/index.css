@@ -2,11 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
-
 @layer base {
+  /* ── DARK THEME (default) ── */
   :root {
     --background: 220 25% 12%;
     --foreground: 0 0% 100%;
@@ -49,10 +46,10 @@ All colors MUST be HSL.
 
     --success: 142 76% 36%;
     --success-foreground: 0 0% 100%;
-    
+
     --warning: 25 95% 53%;
     --warning-foreground: 0 0% 100%;
-    
+
     --info: 280 100% 70%;
     --info-foreground: 0 0% 100%;
 
@@ -61,6 +58,63 @@ All colors MUST be HSL.
     --garden-purple: 280 100% 70%;
     --garden-blue: 217 91% 60%;
     --garden-pink: 330 81% 60%;
+  }
+
+  /* ── LIGHT THEME ── */
+  .light {
+    --background: 0 0% 98%;
+    --foreground: 220 25% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 25% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 25% 10%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 14% 93%;
+    --secondary-foreground: 220 25% 10%;
+
+    --muted: 220 14% 93%;
+    --muted-foreground: 220 10% 45%;
+
+    --accent: 220 14% 90%;
+    --accent-foreground: 220 25% 10%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 13% 85%;
+    --input: 220 13% 85%;
+    --ring: 217 91% 60%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 220 25% 10%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 14% 93%;
+    --sidebar-accent-foreground: 220 25% 10%;
+    --sidebar-border: 220 13% 85%;
+    --sidebar-ring: 217 91% 60%;
+
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 25 95% 53%;
+    --warning-foreground: 0 0% 100%;
+
+    --info: 280 100% 60%;
+    --info-foreground: 0 0% 100%;
+
+    --garden-green: 142 76% 36%;
+    --garden-orange: 25 95% 53%;
+    --garden-purple: 280 80% 55%;
+    --garden-blue: 217 91% 55%;
+    --garden-pink: 330 81% 55%;
   }
 }
 
@@ -71,5 +125,6 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
 }

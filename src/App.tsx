@@ -6,9 +6,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/Header";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import { Sidebar } from "@/components/Sidebar";
-
-import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import MoodGarden from "./pages/MoodGarden";
@@ -71,39 +70,30 @@ const App = () => {
   }
 
   return (
+    <ThemeProvider>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
         <Sonner />
         <BrowserRouter>
           <Routes>
-            {/* ── Public routes (no session needed) ── */}
-            <Route
-              path="/"
-              element={session ? <Navigate to="/dashboard" /> : <Landing />}
-            />
-            <Route
-              path="/login"
-              element={session ? <Navigate to="/dashboard" /> : <Login />}
-            />
+            <Route path="/login" element={!session ? <Login /> : <Navigate to="/" />} />
 
-            {/* ── Protected routes (session required) ── */}
             {session ? (
-              <Route
-                path="*"
-                element={
+              <>
+                <Route path="*" element={
                   <div className="min-h-screen bg-background">
                     <Header />
                     <Sidebar />
                     <main className="lg:ml-64 mt-16 p-4 lg:p-8">
                       <Routes>
-                        {/* Common */}
-                        <Route path="/dashboard" element={<Dashboard />} />
+                        {/* Common Routes */}
+                        <Route path="/" element={<Dashboard />} />
                         <Route path="/profile" element={<Profile />} />
                         <Route path="/settings" element={<Settings />} />
                         <Route path="/resources" element={<Resources />} />
 
-                        {/* Student */}
+                        {/* Student Routes */}
                         <Route path="/mood-garden" element={<MoodGarden />} />
                         <Route path="/ai-support" element={<AISupport />} />
                         <Route path="/book-session" element={<BookSession />} />
@@ -112,14 +102,14 @@ const App = () => {
                         <Route path="/wellness-tools" element={<WellnessTools />} />
                         <Route path="/history" element={<History />} />
 
-                        {/* Counsellor */}
+                        {/* Counsellor Routes */}
                         <Route path="/counsellor/clients" element={<CounsellorClients />} />
                         <Route path="/counsellor/appointments" element={<CounsellorAppointments />} />
                         <Route path="/counsellor/notes" element={<CounsellorNotes />} />
                         <Route path="/counsellor/progress" element={<CounsellorProgress />} />
                         <Route path="/counsellor/schedule" element={<CounsellorSchedule />} />
 
-                        {/* Admin */}
+                        {/* Admin Routes */}
                         <Route path="/campus-pulse" element={<CampusPulse />} />
                         <Route path="/admin/users" element={<AdminUsers />} />
                         <Route path="/admin/counsellor-review" element={<AdminCounsellorReview />} />
@@ -131,15 +121,16 @@ const App = () => {
                       </Routes>
                     </main>
                   </div>
-                }
-              />
+                } />
+              </>
             ) : (
-              <Route path="*" element={<Navigate to="/" />} />
+              <Route path="*" element={<Navigate to="/login" />} />
             )}
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
+    </ThemeProvider>
   );
 };
 
