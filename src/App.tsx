@@ -1,3 +1,4 @@
+
 // import { Toaster } from "@/components/ui/toaster";
 // import { Toaster as Sonner } from "@/components/ui/sonner";
 // import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,6 +8,7 @@
 // import { supabase } from "@/integrations/supabase/client";
 // import { Header } from "@/components/Header";
 // import { Sidebar } from "@/components/Sidebar";
+// import { ThemeProvider } from "@/contexts/ThemeContext";
 
 // import Landing from "./pages/Landing";
 // import Login from "./pages/Login";
@@ -71,75 +73,77 @@
 //   }
 
 //   return (
-//     <QueryClientProvider client={queryClient}>
-//       <TooltipProvider>
-//         <Toaster />
-//         <Sonner />
-//         <BrowserRouter>
-//           <Routes>
-//             {/* ── Public routes (no session needed) ── */}
-//             <Route
-//               path="/"
-//               element={session ? <Navigate to="/dashboard" /> : <Landing />}
-//             />
-//             <Route
-//               path="/login"
-//               element={session ? <Navigate to="/dashboard" /> : <Login />}
-//             />
-
-//             {/* ── Protected routes (session required) ── */}
-//             {session ? (
+//     <ThemeProvider>
+//       <QueryClientProvider client={queryClient}>
+//         <TooltipProvider>
+//           <Toaster />
+//           <Sonner />
+//           <BrowserRouter>
+//             <Routes>
+//               {/* ── Public routes (no session needed) ── */}
 //               <Route
-//                 path="*"
-//                 element={
-//                   <div className="min-h-screen bg-background">
-//                     <Header />
-//                     <Sidebar />
-//                     <main className="lg:ml-64 mt-16 p-4 lg:p-8">
-//                       <Routes>
-//                         {/* Common */}
-//                         <Route path="/dashboard" element={<Dashboard />} />
-//                         <Route path="/profile" element={<Profile />} />
-//                         <Route path="/settings" element={<Settings />} />
-//                         <Route path="/resources" element={<Resources />} />
-
-//                         {/* Student */}
-//                         <Route path="/mood-garden" element={<MoodGarden />} />
-//                         <Route path="/ai-support" element={<AISupport />} />
-//                         <Route path="/book-session" element={<BookSession />} />
-//                         <Route path="/study-buddy" element={<StudyBuddy />} />
-//                         <Route path="/peer-support" element={<PeerSupport />} />
-//                         <Route path="/wellness-tools" element={<WellnessTools />} />
-//                         <Route path="/history" element={<History />} />
-
-//                         {/* Counsellor */}
-//                         <Route path="/counsellor/clients" element={<CounsellorClients />} />
-//                         <Route path="/counsellor/appointments" element={<CounsellorAppointments />} />
-//                         <Route path="/counsellor/notes" element={<CounsellorNotes />} />
-//                         <Route path="/counsellor/progress" element={<CounsellorProgress />} />
-//                         <Route path="/counsellor/schedule" element={<CounsellorSchedule />} />
-
-//                         {/* Admin */}
-//                         <Route path="/campus-pulse" element={<CampusPulse />} />
-//                         <Route path="/admin/users" element={<AdminUsers />} />
-//                         <Route path="/admin/counsellor-review" element={<AdminCounsellorReview />} />
-//                         <Route path="/admin/analytics" element={<AdminAnalytics />} />
-//                         <Route path="/admin/reports" element={<AdminReports />} />
-//                         <Route path="/admin/system-settings" element={<AdminSystemSettings />} />
-
-//                         <Route path="*" element={<NotFound />} />
-//                       </Routes>
-//                     </main>
-//                   </div>
-//                 }
+//                 path="/"
+//                 element={session ? <Navigate to="/dashboard" /> : <Landing />}
 //               />
-//             ) : (
-//               <Route path="*" element={<Navigate to="/" />} />
-//             )}
-//           </Routes>
-//         </BrowserRouter>
-//       </TooltipProvider>
-//     </QueryClientProvider>
+//               <Route
+//                 path="/login"
+//                 element={session ? <Navigate to="/dashboard" /> : <Login />}
+//               />
+
+//               {/* ── Protected routes (session required) ── */}
+//               {session ? (
+//                 <Route
+//                   path="*"
+//                   element={
+//                     <div className="min-h-screen bg-background">
+//                       <Header />
+//                       <Sidebar />
+//                       <main className="lg:ml-64 mt-16 p-4 lg:p-8">
+//                         <Routes>
+//                           {/* Common */}
+//                           <Route path="/dashboard" element={<Dashboard />} />
+//                           <Route path="/profile" element={<Profile />} />
+//                           <Route path="/settings" element={<Settings />} />
+//                           <Route path="/resources" element={<Resources />} />
+
+//                           {/* Student */}
+//                           <Route path="/mood-garden" element={<MoodGarden />} />
+//                           <Route path="/ai-support" element={<AISupport />} />
+//                           <Route path="/book-session" element={<BookSession />} />
+//                           <Route path="/study-buddy" element={<StudyBuddy />} />
+//                           <Route path="/peer-support" element={<PeerSupport />} />
+//                           <Route path="/wellness-tools" element={<WellnessTools />} />
+//                           <Route path="/history" element={<History />} />
+
+//                           {/* Counsellor */}
+//                           <Route path="/counsellor/clients" element={<CounsellorClients />} />
+//                           <Route path="/counsellor/appointments" element={<CounsellorAppointments />} />
+//                           <Route path="/counsellor/notes" element={<CounsellorNotes />} />
+//                           <Route path="/counsellor/progress" element={<CounsellorProgress />} />
+//                           <Route path="/counsellor/schedule" element={<CounsellorSchedule />} />
+
+//                           {/* Admin */}
+//                           <Route path="/campus-pulse" element={<CampusPulse />} />
+//                           <Route path="/admin/users" element={<AdminUsers />} />
+//                           <Route path="/admin/counsellor-review" element={<AdminCounsellorReview />} />
+//                           <Route path="/admin/analytics" element={<AdminAnalytics />} />
+//                           <Route path="/admin/reports" element={<AdminReports />} />
+//                           <Route path="/admin/system-settings" element={<AdminSystemSettings />} />
+
+//                           <Route path="*" element={<NotFound />} />
+//                         </Routes>
+//                       </main>
+//                     </div>
+//                   }
+//                 />
+//               ) : (
+//                 <Route path="*" element={<Navigate to="/" />} />
+//               )}
+//             </Routes>
+//           </BrowserRouter>
+//         </TooltipProvider>
+//       </QueryClientProvider>
+//     </ThemeProvider>
 //   );
 // };
 
@@ -169,6 +173,7 @@ import WellnessTools from "./pages/WellnessTools";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import History from "./pages/History";
+import NutritionAnalyzer from "./pages/NutritionAnalyzer";
 import NotFound from "./pages/NotFound";
 
 // Counsellor Pages
@@ -259,6 +264,7 @@ const App = () => {
                           <Route path="/peer-support" element={<PeerSupport />} />
                           <Route path="/wellness-tools" element={<WellnessTools />} />
                           <Route path="/history" element={<History />} />
+                          <Route path="/nutrition" element={<NutritionAnalyzer />} />
 
                           {/* Counsellor */}
                           <Route path="/counsellor/clients" element={<CounsellorClients />} />
@@ -293,3 +299,4 @@ const App = () => {
 };
 
 export default App;
+

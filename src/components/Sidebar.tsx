@@ -1,4 +1,4 @@
-import { Home, MessageCircle, Calendar, Flower2, TrendingUp, Users, BookOpen, Heart, User, Settings, History, Briefcase, Shield, FileText, BarChart3, UserCheck, ClipboardList } from "lucide-react";
+import { Home, MessageCircle, Calendar, Flower2, TrendingUp, Users, BookOpen, Heart, User, Settings, History, Briefcase, Shield, FileText, BarChart3, UserCheck, ClipboardList, Salad } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -27,6 +27,7 @@ export const NavContent = ({
     { name: "Profile", href: "/profile", icon: User },
     { name: "Settings", href: "/settings", icon: Settings },
     { name: "History", href: "/history", icon: History },
+    { name: "Nutrition & Mood", href: "/nutrition", icon: Salad },
   ];
 
   // Counsellor Navigation
