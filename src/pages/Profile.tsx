@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
+import { Database } from "@/integrations/supabase/types";
 import { User, Mail, Phone, MapPin, Calendar, Award, Shield, Edit2, Save } from "lucide-react";
 import { toast } from "sonner";
 
@@ -68,7 +69,7 @@ const Profile = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const updates: any = {
+        const updates: Database['public']['Tables']['profiles']['Update'] = {
           id: user.id,
           full_name: profile.fullName,
           updated_at: new Date().toISOString(),

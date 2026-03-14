@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -187,7 +188,7 @@ const Login = () => {
         console.log("User created successfully, ID:", authData.user.id);
 
         // Create profile with role-specific data
-        const profileData: any = {
+        const profileData: Database['public']['Tables']['profiles']['Insert'] = {
           id: authData.user.id,
           full_name: fullName,
           role: selectedRole, // CRITICAL: Set the role
@@ -234,10 +235,11 @@ const Login = () => {
           resetForm();
         }, 2000);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Auth error:", err);
-      setError(err.message || "An error occurred. Please try again.");
-      toast.error(err.message || "An error occurred");
+      const errorMessage = err instanceof Error ? err.message : "An error occurred. Please try again.";
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
