@@ -100,14 +100,14 @@ export function useNutritionAnalyzer() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not logged in');
 
-      // Save to garden_activities table as a nutrition log entry
-      // (reusing existing table until a dedicated nutrition_logs table is created)
-      const { error } = await supabase.from('garden_activities').insert({
+      // Save to nutrition_logs table
+      const { error } = await (supabase as any).from('nutrition_logs').insert({
         user_id: user.id,
-        activity_name: `Nutrition Log — Score: ${result.score.total}/100 (${result.score.category})`,
-        category: 'self-care',
-        xp_earned: Math.round(result.score.total / 10), // 0–10 XP based on score
-        plant_id: null,
+        foods: meals.flatMap(m => m.foods),
+        meal_types: meals.map(m => ({ type: m.mealType, foods: m.foods })),
+        score: result.score.total,
+        severity: result.score.category,
+        totals: result.totals,
       });
 
       if (error) throw error;

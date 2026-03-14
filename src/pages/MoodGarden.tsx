@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -15,7 +17,8 @@ import {
   CheckCircle2,
   Sparkles,
   Trophy,
-  Clock
+  Clock,
+  Smile
 } from "lucide-react";
 
 interface Plant {
@@ -45,7 +48,7 @@ interface Activity {
 }
 
 const MoodGarden = () => {
-  const [plants, setPlants] = useState<Plant[]>([
+  const [plants, setPlants] = useState<Plant[]>(([
     {
       id: 1,
       name: "Serenity Lotus",
@@ -124,9 +127,9 @@ const MoodGarden = () => {
       currentXp: 15,
       streak: 0,
     },
-  ]);
+  ]));
 
-  const [activities, setActivities] = useState<Activity[]>([
+  const [activities, setActivities] = useState<Activity[]>(([
     {
       id: 1,
       name: "Morning Meditation",
@@ -215,22 +218,73 @@ const MoodGarden = () => {
       icon: "🌙",
       description: "Prepare your mind and body for rest"
     },
-  ]);
+  ]));
 
   const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
   const [showActivityModal, setShowActivityModal] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
+  const [selectedMood, setSelectedMood] = useState<string | null>(null);
+  const [moodSubmitted, setMoodSubmitted] = useState(false);
+  const [moodNote, setMoodNote] = useState("");
+
+  const moods = [
+    { emoji: "😊", label: "Happy", value: "Happy" },
+    { emoji: "😌", label: "Calm", value: "Calm" },
+    { emoji: "💪", label: "Motivated", value: "Motivated" },
+    { emoji: "😐", label: "Okay", value: "Okay" },
+    { emoji: "😰", label: "Stressed", value: "Stressed" },
+    { emoji: "😟", label: "Anxious", value: "Anxious" },
+    { emoji: "😔", label: "Sad", value: "Sad" },
+    { emoji: "😫", label: "Struggling", value: "Struggling" },
+  ];
+
+  const logMood = async () => {
+    if (!selectedMood) return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: profile } = await supabase.from("profiles").select("department").eq("id", user.id).single();
+      await (supabase as any).from("mood_logs").insert({
+        user_id: user.id,
+        mood: selectedMood,
+        department: profile?.department || null,
+      });
+      setMoodSubmitted(true);
+      toast.success(`Mood logged: ${selectedMood} 🌱`);
+    } catch (err) {
+      console.error("Failed to log mood:", err);
+      toast.error("Failed to save mood");
+    }
+  };
 
   const totalPoints = plants.reduce((sum, plant) => sum + plant.currentXp, 0);
   const currentStreak = Math.max(...plants.map(p => p.streak));
   const gardenLevel = Math.floor(totalPoints / 500) + 1;
 
-  const completeActivity = (activityId: number) => {
+  const completeActivity = async (activityId: number) => {
     const activity = activities.find(a => a.id === activityId);
     if (!activity || activity.completed) return;
 
+    // Save to Supabase
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await (supabase as any).from("garden_activities").insert({
+          user_id: user.id,
+          activity_name: activity.name,
+          category: activity.category,
+          xp_earned: activity.xp,
+          plant_id: activity.plantId,
+        });
+      }
+    } catch (err) {
+      console.error("Failed to save activity:", err);
+    }
+
+    toast.success(`+${activity.xp} XP earned! 🌱`);
+
     // Update activity
-    setActivities(prev => prev.map(a => 
+    setActivities(prev => prev.map(a =>
       a.id === activityId ? { ...a, completed: true } : a
     ));
 
@@ -257,7 +311,25 @@ const MoodGarden = () => {
     setShowActivityModal(false);
   };
 
-  const waterPlant = (plantId: number) => {
+  const waterPlant = async (plantId: number) => {
+    // Save watering event to Supabase
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await (supabase as any).from("garden_activities").insert({
+          user_id: user.id,
+          activity_name: "Watered Plant",
+          category: "self-care",
+          xp_earned: 10,
+          plant_id: plantId,
+        });
+      }
+    } catch (err) {
+      console.error("Failed to save watering:", err);
+    }
+
+    toast.success("+10 XP for watering! 💧");
+
     setPlants(prev => prev.map(plant => {
       if (plant.id === plantId && plant.unlocked) {
         return {
@@ -341,6 +413,43 @@ const MoodGarden = () => {
           </div>
         </div>
       </div>
+
+      {/* Daily Mood Check-in */}
+      <Card className="border-garden-purple/30 bg-gradient-to-r from-garden-purple/5 to-garden-blue/5">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Smile className="w-5 h-5 text-garden-purple" />
+            How are you feeling today?
+          </CardTitle>
+          <CardDescription>Log your daily mood — this data helps generate your Diagnostic Report</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {moodSubmitted ? (
+            <div className="text-center py-4 space-y-2">
+              <p className="text-4xl">{moods.find(m => m.value === selectedMood)?.emoji}</p>
+              <p className="font-semibold text-foreground">Mood logged: {selectedMood} ✅</p>
+              <p className="text-sm text-muted-foreground">Your mood has been saved to your wellness profile.</p>
+              <button onClick={() => { setMoodSubmitted(false); setSelectedMood(null); }} className="text-xs text-garden-blue hover:underline">Log again</button>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
+                {moods.map(m => (
+                  <button key={m.value} onClick={() => setSelectedMood(m.value)}
+                    className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all hover:scale-105 ${selectedMood === m.value ? "border-garden-purple bg-garden-purple/10" : "border-border bg-card"}`}
+                  >
+                    <span className="text-2xl">{m.emoji}</span>
+                    <span className="text-xs font-medium text-foreground">{m.label}</span>
+                  </button>
+                ))}
+              </div>
+              <Button className="w-full" disabled={!selectedMood} onClick={logMood}>
+                Save Today's Mood
+              </Button>
+            </>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

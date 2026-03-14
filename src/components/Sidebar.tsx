@@ -23,7 +23,7 @@ export const NavContent = ({
     { name: t("moodGarden"),     href: "/mood-garden",    icon: Flower2 },
     { name: t("studyBuddy"),     href: "/study-buddy",    icon: Users },
     { name: t("resources"),      href: "/resources",      icon: BookOpen },
-    { name: t("peerSupport"),    href: "/peer-support",   icon: Users },
+    
     { name: t("wellnessTools"),  href: "/wellness-tools", icon: Heart },
     { name: t("nutritionMood"),  href: "/nutrition",      icon: Salad },
     { name: t("history"),        href: "/history",        icon: History },
