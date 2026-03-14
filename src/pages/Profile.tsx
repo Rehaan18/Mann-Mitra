@@ -6,470 +6,205 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
-import { Database } from "@/integrations/supabase/types";
-import { User, Mail, Phone, MapPin, Calendar, Award, Shield, Edit2, Save } from "lucide-react";
+import { User, Mail, Phone, MapPin, Award, Shield, Edit2, Save, X } from "lucide-react";
 import { toast } from "sonner";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const Profile = () => {
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState({
-    fullName: '',
-    email: '',
-    role: '',
-    studentId: '',
-    department: '',
-    year: '',
-    phone: '',
-    location: '',
-    bio: '',
-    licenseNumber: '',
-    specialization: '',
+    fullName: '', email: '', role: '', studentId: '',
+    department: '', year: '', phone: '', location: '',
+    bio: '', licenseNumber: '', specialization: '',
   });
+  const [editProfile, setEditProfile] = useState({ ...profile });
+  const [assessmentCount, setAssessmentCount] = useState(0);
+  const [sessionCount, setSessionCount] = useState(0);
 
-  useEffect(() => {
-    loadProfile();
-  }, []);
+  useEffect(() => { loadProfile(); }, []);
 
   const loadProfile = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-
+        const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
         if (profileData) {
-          setProfile({
+          const p = {
             fullName: profileData.full_name || '',
             email: profileData.email || user.email || '',
             role: profileData.role || '',
             studentId: profileData.student_id || '',
             department: profileData.department || '',
             year: profileData.year || '',
-            phone: '',
-            location: '',
-            bio: '',
+            phone: (profileData as any).phone || '',
+            location: (profileData as any).location || '',
+            bio: (profileData as any).bio || '',
             licenseNumber: profileData.license_number || '',
             specialization: profileData.specialization || '',
-          });
+          };
+          setProfile(p);
+          setEditProfile(p);
         }
+
+        // Load stats
+        const { count: ac } = await (supabase as any).from('stress_assessments').select('*', { count: 'exact', head: true }).eq('user_id', user.id);
+        setAssessmentCount(ac || 0);
+        const { count: sc } = await (supabase as any).from('session_bookings').select('*', { count: 'exact', head: true }).eq('student_id', user.id);
+        setSessionCount(sc || 0);
       }
-    } catch (error) {
-      console.error('Error loading profile:', error);
-      toast.error('Failed to load profile');
-    } finally {
-      setLoading(false);
-    }
+    } catch (error) { console.error('Error loading profile:', error); }
+    finally { setLoading(false); }
   };
 
   const handleSave = async () => {
+    setSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const updates: Database['public']['Tables']['profiles']['Update'] = {
-          id: user.id,
-          full_name: profile.fullName,
-          updated_at: new Date().toISOString(),
-        };
-
-        if (profile.role === 'student') {
-          updates.student_id = profile.studentId;
-          updates.department = profile.department;
-          updates.year = profile.year;
-        } else if (profile.role === 'counsellor') {
-          updates.license_number = profile.licenseNumber;
-          updates.specialization = profile.specialization;
-        }
-
-        const { error } = await supabase
-          .from('profiles')
-          .update(updates)
-          .eq('id', user.id);
-
-        if (error) throw error;
-
-        toast.success('Profile updated successfully!');
-        setEditing(false);
-      }
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      toast.error('Failed to update profile');
-    }
+      if (!user) throw new Error('Not logged in');
+      const { error } = await supabase.from('profiles').update({
+        full_name: editProfile.fullName,
+        phone: editProfile.phone,
+        location: editProfile.location,
+        bio: editProfile.bio,
+        updated_at: new Date().toISOString(),
+      } as any).eq('id', user.id);
+      if (error) throw error;
+      setProfile({ ...editProfile });
+      setEditing(false);
+      toast.success(t('profileUpdated'));
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to update profile');
+    } finally { setSaving(false); }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-garden-blue border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading profile...</p>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <div className="flex items-center justify-center h-64"><p className="text-muted-foreground">Loading profile...</p></div>;
 
-  const getRoleBadge = () => {
-    const colors = {
-      student: 'bg-garden-blue',
-      counsellor: 'bg-garden-purple',
-      administrator: 'bg-garden-green'
-    };
-    return colors[profile.role as keyof typeof colors] || 'bg-muted';
-  };
-
-  const getRoleIcon = () => {
-    if (profile.role === 'student') return <User className="w-4 h-4" />;
-    if (profile.role === 'counsellor') return <Award className="w-4 h-4" />;
-    if (profile.role === 'administrator') return <Shield className="w-4 h-4" />;
-    return <User className="w-4 h-4" />;
-  };
+  const roleColor: Record<string, string> = { student: 'bg-blue-100 text-blue-800', counsellor: 'bg-purple-100 text-purple-800', administrator: 'bg-red-100 text-red-800' };
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground mb-2">My Profile</h1>
-        <p className="text-muted-foreground">Manage your account information and preferences</p>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-2">{t("profileTitle")}</h1>
+          <p className="text-muted-foreground">{t("profileDesc")}</p>
+        </div>
+        {!editing ? (
+          <Button onClick={() => setEditing(true)} variant="outline" className="gap-2"><Edit2 className="w-4 h-4" />{t("editProfile")}</Button>
+        ) : (
+          <div className="flex gap-2">
+            <Button onClick={() => { setEditing(false); setEditProfile({ ...profile }); }} variant="outline" className="gap-2"><X className="w-4 h-4" />{t("cancel")}</Button>
+            <Button onClick={handleSave} disabled={saving} className="gap-2"><Save className="w-4 h-4" />{saving ? t("loading") : t("saveChanges")}</Button>
+          </div>
+        )}
       </div>
 
-      {/* Profile Header Card */}
-      <Card className="relative overflow-hidden">
-        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-r from-garden-blue via-garden-purple to-garden-pink"></div>
-        <CardContent className="pt-20 pb-6">
-          <div className="flex flex-col md:flex-row items-center gap-6">
-            <div className="relative">
-              <div className="w-32 h-32 rounded-full bg-gradient-to-br from-garden-blue to-garden-purple flex items-center justify-center text-white text-4xl font-bold shadow-xl">
-                {profile.fullName.charAt(0).toUpperCase()}
-              </div>
-              <Badge className={`absolute bottom-2 right-2 ${getRoleBadge()} text-white border-4 border-white`}>
-                {getRoleIcon()}
-                <span className="ml-1 capitalize">{profile.role}</span>
-              </Badge>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Avatar & role card */}
+        <Card>
+          <CardContent className="pt-6 flex flex-col items-center text-center space-y-4">
+            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-garden-blue to-garden-purple flex items-center justify-center">
+              <User className="w-12 h-12 text-white" />
             </div>
-            <div className="text-center md:text-left flex-1">
-              <h2 className="text-2xl font-bold text-foreground mb-1">{profile.fullName}</h2>
-              <p className="text-muted-foreground mb-3">{profile.email}</p>
-              <div className="flex flex-wrap gap-2 justify-center md:justify-start">
-                {profile.role === 'student' && profile.department && (
-                  <Badge variant="outline">{profile.department}</Badge>
-                )}
-                {profile.role === 'student' && profile.year && (
-                  <Badge variant="outline">{profile.year}</Badge>
-                )}
-                {profile.role === 'counsellor' && profile.specialization && (
-                  <Badge variant="outline">{profile.specialization}</Badge>
-                )}
+            <div>
+              <h2 className="text-xl font-bold text-foreground">{profile.fullName || 'Unknown User'}</h2>
+              <p className="text-muted-foreground">{profile.email}</p>
+            </div>
+            <Badge className={roleColor[profile.role] || 'bg-gray-100 text-gray-800'}>{profile.role || 'Unknown Role'}</Badge>
+
+            <div className="w-full grid grid-cols-2 gap-3 pt-2 border-t border-border">
+              <div className="text-center">
+                <p className="text-2xl font-bold text-foreground">{assessmentCount}</p>
+                <p className="text-xs text-muted-foreground">{t("assessments")}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-foreground">{sessionCount}</p>
+                <p className="text-xs text-muted-foreground">{t("sessions")}</p>
               </div>
             </div>
-            <Button
-              onClick={() => editing ? handleSave() : setEditing(true)}
-              className="self-start"
-            >
-              {editing ? (
-                <>
-                  <Save className="w-4 h-4 mr-2" />
-                  Save Changes
-                </>
-              ) : (
-                <>
-                  <Edit2 className="w-4 h-4 mr-2" />
-                  Edit Profile
-                </>
-              )}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      {/* Profile Details Tabs */}
-      <Tabs defaultValue="personal" className="w-full">
-        <TabsList className="w-full">
-          <TabsTrigger value="personal" className="flex-1">Personal Info</TabsTrigger>
-          <TabsTrigger value="academic" className="flex-1">
-            {profile.role === 'student' ? 'Academic Info' : 'Professional Info'}
-          </TabsTrigger>
-          <TabsTrigger value="stats" className="flex-1">Activity Stats</TabsTrigger>
-        </TabsList>
+        {/* Details */}
+        <div className="lg:col-span-2">
+          <Tabs defaultValue="personal">
+            <TabsList><TabsTrigger value="personal">{t("personalInfo")}</TabsTrigger><TabsTrigger value="academic">{t("academicProfessional")}</TabsTrigger></TabsList>
 
-        {/* Personal Information Tab */}
-        <TabsContent value="personal" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Personal Information</CardTitle>
-              <CardDescription>Your basic account information</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">Full Name</Label>
-                  <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-muted-foreground" />
-                    <Input
-                      id="fullName"
-                      value={profile.fullName}
-                      onChange={(e) => setProfile({ ...profile, fullName: e.target.value })}
-                      disabled={!editing}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
-                  <div className="flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-muted-foreground" />
-                    <Input
-                      id="email"
-                      type="email"
-                      value={profile.email}
-                      disabled
-                      className="bg-muted"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <div className="flex items-center gap-2">
-                    <Phone className="w-4 h-4 text-muted-foreground" />
-                    <Input
-                      id="phone"
-                      value={profile.phone}
-                      onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                      disabled={!editing}
-                      placeholder="+91 XXXXX XXXXX"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="location">Location</Label>
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-muted-foreground" />
-                    <Input
-                      id="location"
-                      value={profile.location}
-                      onChange={(e) => setProfile({ ...profile, location: e.target.value })}
-                      disabled={!editing}
-                      placeholder="Delhi, India"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="bio">Bio</Label>
-                <textarea
-                  id="bio"
-                  value={profile.bio}
-                  onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
-                  disabled={!editing}
-                  className="w-full min-h-[100px] p-3 rounded-md bg-background border border-input text-foreground resize-none disabled:opacity-50"
-                  placeholder="Tell us a bit about yourself..."
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Academic/Professional Information Tab */}
-        <TabsContent value="academic" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>
-                {profile.role === 'student' ? 'Academic Information' : 'Professional Information'}
-              </CardTitle>
-              <CardDescription>
-                {profile.role === 'student' 
-                  ? 'Your educational details' 
-                  : 'Your professional credentials'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {profile.role === 'student' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="studentId">Student ID</Label>
-                    <Input
-                      id="studentId"
-                      value={profile.studentId}
-                      onChange={(e) => setProfile({ ...profile, studentId: e.target.value })}
-                      disabled={!editing}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="department">Department</Label>
-                    <select
-                      id="department"
-                      value={profile.department}
-                      onChange={(e) => setProfile({ ...profile, department: e.target.value })}
-                      disabled={!editing}
-                      className="w-full px-3 py-2 rounded-md bg-background border border-input text-foreground disabled:opacity-50 h-10"
-                    >
-                      <option value="">Select department</option>
-                      <option value="Computer Science">Computer Science</option>
-                      <option value="Engineering">Engineering</option>
-                      <option value="Business">Business</option>
-                      <option value="Arts & Humanities">Arts & Humanities</option>
-                      <option value="Science">Science</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="year">Year</Label>
-                    <select
-                      id="year"
-                      value={profile.year}
-                      onChange={(e) => setProfile({ ...profile, year: e.target.value })}
-                      disabled={!editing}
-                      className="w-full px-3 py-2 rounded-md bg-background border border-input text-foreground disabled:opacity-50 h-10"
-                    >
-                      <option value="">Select year</option>
-                      <option value="1st Year">1st Year</option>
-                      <option value="2nd Year">2nd Year</option>
-                      <option value="3rd Year">3rd Year</option>
-                      <option value="4th Year">4th Year</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="enrollmentDate">Enrollment Date</Label>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-muted-foreground" />
-                      <Input
-                        id="enrollmentDate"
-                        type="date"
-                        disabled={!editing}
-                      />
+            <TabsContent value="personal" className="mt-4">
+              <Card>
+                <CardHeader><CardTitle>{t("personalInformation")}</CardTitle><CardDescription>{t("basicProfileDetails")}</CardDescription></CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Full Name</Label>
+                      {editing
+                        ? <Input value={editProfile.fullName} onChange={(e) => setEditProfile(p => ({ ...p, fullName: e.target.value }))} />
+                        : <div className="flex items-center gap-2 text-foreground"><User className="w-4 h-4 text-muted-foreground" />{profile.fullName || '—'}</div>}
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Email</Label>
+                      <div className="flex items-center gap-2 text-foreground"><Mail className="w-4 h-4 text-muted-foreground" />{profile.email}</div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Phone</Label>
+                      {editing
+                        ? <Input value={editProfile.phone} onChange={(e) => setEditProfile(p => ({ ...p, phone: e.target.value }))} placeholder="+91 XXXXX XXXXX" />
+                        : <div className="flex items-center gap-2 text-foreground"><Phone className="w-4 h-4 text-muted-foreground" />{profile.phone || '—'}</div>}
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Location</Label>
+                      {editing
+                        ? <Input value={editProfile.location} onChange={(e) => setEditProfile(p => ({ ...p, location: e.target.value }))} placeholder="City, State" />
+                        : <div className="flex items-center gap-2 text-foreground"><MapPin className="w-4 h-4 text-muted-foreground" />{profile.location || '—'}</div>}
                     </div>
                   </div>
-                </div>
-              )}
-
-              {profile.role === 'counsellor' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="licenseNumber">License Number</Label>
-                    <Input
-                      id="licenseNumber"
-                      value={profile.licenseNumber}
-                      onChange={(e) => setProfile({ ...profile, licenseNumber: e.target.value })}
-                      disabled={!editing}
-                    />
+                    <Label>Bio</Label>
+                    {editing
+                      ? <textarea value={editProfile.bio} onChange={(e) => setEditProfile(p => ({ ...p, bio: e.target.value }))} className="w-full px-3 py-2 rounded-md bg-background border border-input text-foreground resize-none" rows={3} placeholder="Tell us a little about yourself..." />
+                      : <p className="text-foreground">{profile.bio || '—'}</p>}
                   </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="specialization">Specialization</Label>
-                    <select
-                      id="specialization"
-                      value={profile.specialization}
-                      onChange={(e) => setProfile({ ...profile, specialization: e.target.value })}
-                      disabled={!editing}
-                      className="w-full px-3 py-2 rounded-md bg-background border border-input text-foreground disabled:opacity-50 h-10"
-                    >
-                      <option value="">Select specialization</option>
-                      <option value="Anxiety & Depression">Anxiety & Depression</option>
-                      <option value="Stress Management">Stress Management</option>
-                      <option value="Academic Stress">Academic Stress</option>
-                      <option value="Relationship Counseling">Relationship Counseling</option>
-                      <option value="General Counseling">General Counseling</option>
-                    </select>
+            <TabsContent value="academic" className="mt-4">
+              <Card>
+                <CardHeader><CardTitle>{profile.role === 'student' ? 'Academic Information' : 'Professional Information'}</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                  {profile.role === 'student' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1"><Label className="text-muted-foreground text-xs">STUDENT ID</Label><p className="font-medium text-foreground">{profile.studentId || '—'}</p></div>
+                      <div className="space-y-1"><Label className="text-muted-foreground text-xs">DEPARTMENT</Label><p className="font-medium text-foreground">{profile.department || '—'}</p></div>
+                      <div className="space-y-1"><Label className="text-muted-foreground text-xs">YEAR</Label><p className="font-medium text-foreground">{profile.year || '—'}</p></div>
+                    </div>
+                  )}
+                  {profile.role === 'counsellor' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1"><Label className="text-muted-foreground text-xs">LICENSE NUMBER</Label><p className="font-medium text-foreground">{profile.licenseNumber || '—'}</p></div>
+                      <div className="space-y-1"><Label className="text-muted-foreground text-xs">SPECIALIZATION</Label><p className="font-medium text-foreground">{profile.specialization || '—'}</p></div>
+                    </div>
+                  )}
+                  {profile.role === 'administrator' && (
+                    <div className="flex items-center gap-3 p-4 rounded-lg bg-muted">
+                      <Shield className="w-6 h-6 text-red-500" />
+                      <div><p className="font-medium text-foreground">Administrator Account</p><p className="text-sm text-muted-foreground">Full system access</p></div>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-3 p-4 rounded-lg bg-muted mt-2">
+                    <Award className="w-6 h-6 text-garden-blue" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">{t("fieldsNote")}</p>
+                    </div>
                   </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="experience">Years of Experience</Label>
-                    <Input
-                      id="experience"
-                      type="number"
-                      disabled={!editing}
-                      placeholder="5"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="qualifications">Qualifications</Label>
-                    <Input
-                      id="qualifications"
-                      disabled={!editing}
-                      placeholder="Ph.D. Psychology"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {profile.role === 'administrator' && (
-                <div className="text-center py-8">
-                  <Shield className="w-16 h-16 mx-auto mb-4 text-garden-green" />
-                  <p className="text-lg font-semibold">Administrator Account</p>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    You have full access to platform management and analytics.
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Activity Stats Tab */}
-        <TabsContent value="stats" className="mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Wellness Journey</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                  <span className="text-sm text-muted-foreground">Total Activities</span>
-                  <span className="text-2xl font-bold">47</span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                  <span className="text-sm text-muted-foreground">Current Streak</span>
-                  <span className="text-2xl font-bold">7 days</span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                  <span className="text-sm text-muted-foreground">Points Earned</span>
-                  <span className="text-2xl font-bold">1,245</span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                  <span className="text-sm text-muted-foreground">Garden Level</span>
-                  <span className="text-2xl font-bold">3</span>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Achievements</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center gap-3 p-3 bg-success/10 rounded-lg border border-success/20">
-                  <Award className="w-8 h-8 text-success" />
-                  <div>
-                    <p className="font-semibold text-sm">Wellness Warrior</p>
-                    <p className="text-xs text-muted-foreground">7-day streak achieved</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 p-3 bg-warning/10 rounded-lg border border-warning/20">
-                  <Award className="w-8 h-8 text-warning" />
-                  <div>
-                    <p className="font-semibold text-sm">Early Bird</p>
-                    <p className="text-xs text-muted-foreground">3 morning activities</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border border-border opacity-50">
-                  <Award className="w-8 h-8 text-muted-foreground" />
-                  <div>
-                    <p className="font-semibold text-sm">Social Butterfly</p>
-                    <p className="text-xs text-muted-foreground">4/10 social activities</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-      </Tabs>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
     </div>
   );
 };

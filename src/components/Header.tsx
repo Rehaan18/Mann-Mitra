@@ -1,10 +1,12 @@
-import { Globe, Sun, Moon, LogOut, Menu } from "lucide-react";
+import { Globe, Sun, Moon, LogOut, Menu, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,13 +14,15 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { NavContent } from "./Sidebar";
 import { useState } from "react";
-import { useThemeContext } from "../contexts/ThemeContext";
+import { useThemeContext } from "@/contexts/ThemeContext";
+import { useLanguage, LANGUAGES } from "@/contexts/LanguageContext";
 
 export const Header = () => {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const { theme, toggleTheme } = useThemeContext();
+  const { t, language, setLanguage, currentLanguage } = useLanguage();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -28,6 +32,7 @@ export const Header = () => {
   return (
     <header className="fixed top-0 left-0 right-0 h-16 bg-sidebar border-b border-border z-50">
       <div className="flex items-center justify-between h-full px-6">
+
         {/* ── Left: logo + mobile menu ── */}
         <div className="flex items-center gap-3">
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -47,7 +52,7 @@ export const Header = () => {
                       className="w-full h-full object-contain"
                     />
                   </div>
-                  <h2 className="text-lg font-bold text-garden-blue">Mann Mitra</h2>
+                  <h2 className="text-lg font-bold text-garden-blue">{t("appName")}</h2>
                 </div>
                 <NavContent
                   userRole={null}
@@ -66,53 +71,74 @@ export const Header = () => {
             />
           </div>
           <div className="hidden lg:block">
-            <h1 className="text-xl font-bold text-garden-blue">Mann Mitra</h1>
-            <p className="text-xs text-muted-foreground">Your Mental Health Companion</p>
+            <h1 className="text-xl font-bold text-garden-blue">{t("appName")}</h1>
+            <p className="text-xs text-muted-foreground">{t("tagline")}</p>
           </div>
         </div>
 
         {/* ── Right: actions ── */}
         <div className="flex items-center gap-2">
-          {/* Language button (placeholder) */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-foreground hover:text-garden-blue"
-          >
-            <Globe className="w-5 h-5" />
-            <span className="sr-only">Change language</span>
-          </Button>
 
-          {/* ── THEME TOGGLE BUTTON ── */}
+          {/* ── LANGUAGE PICKER ── */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-foreground hover:text-garden-blue gap-1.5 px-2"
+                title={t("changeLanguage")}
+              >
+                <Globe className="w-4 h-4" />
+                <span className="text-xs font-semibold hidden sm:inline">
+                  {currentLanguage.nativeName}
+                </span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52 max-h-80 overflow-y-auto">
+              <DropdownMenuLabel className="text-xs text-muted-foreground">
+                {t("changeLanguage")}
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {LANGUAGES.map((lang) => (
+                <DropdownMenuItem
+                  key={lang.code}
+                  onClick={() => setLanguage(lang.code)}
+                  className="flex items-center justify-between cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">{lang.flag}</span>
+                    <div>
+                      <p className="text-sm font-medium text-foreground">
+                        {lang.nativeName}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{lang.name}</p>
+                    </div>
+                  </div>
+                  {language === lang.code && (
+                    <Check className="w-4 h-4 text-garden-blue" />
+                  )}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* ── THEME TOGGLE ── */}
           <Button
             variant="ghost"
             size="icon"
             onClick={toggleTheme}
-            className="text-foreground hover:text-garden-blue relative group"
-            title={theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            className="text-foreground hover:text-garden-blue relative"
+            title={theme === "dark" ? t("switchToLight") : t("switchToDark")}
           >
-            {/* Sun icon — visible in dark mode */}
-            <Sun
-              className={`w-5 h-5 transition-all duration-300 ${
-                theme === "dark"
-                  ? "opacity-100 rotate-0 scale-100"
-                  : "opacity-0 rotate-90 scale-0 absolute"
-              }`}
-            />
-            {/* Moon icon — visible in light mode */}
-            <Moon
-              className={`w-5 h-5 transition-all duration-300 ${
-                theme === "light"
-                  ? "opacity-100 rotate-0 scale-100"
-                  : "opacity-0 -rotate-90 scale-0 absolute"
-              }`}
-            />
-            <span className="sr-only">
-              {theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
-            </span>
+            <Sun className={`w-5 h-5 transition-all duration-300 ${
+              theme === "dark" ? "opacity-100 rotate-0 scale-100" : "opacity-0 rotate-90 scale-0 absolute"
+            }`} />
+            <Moon className={`w-5 h-5 transition-all duration-300 ${
+              theme === "light" ? "opacity-100 rotate-0 scale-100" : "opacity-0 -rotate-90 scale-0 absolute"
+            }`} />
           </Button>
 
-          {/* Avatar / user menu */}
+          {/* ── USER MENU ── */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-10 w-10 rounded-full">
@@ -123,20 +149,19 @@ export const Header = () => {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => navigate("/profile")}>
-                Profile
+                {t("profile")}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigate("/settings")}>
-                Settings
+                {t("settings")}
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={handleLogout}
-                className="text-destructive"
-              >
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout} className="text-destructive">
                 <LogOut className="w-4 h-4 mr-2" />
-                Logout
+                {t("logout")}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
         </div>
       </div>
     </header>
