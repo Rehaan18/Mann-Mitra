@@ -4,9 +4,9 @@ import path from "path";
 
 export default defineConfig({
   server: {
-    host: "::",
+    host: true,
     port: 8080,
-    allowedHosts: ['mann-mitra04.onrender.com']
+    allowedHosts: true
   },
   plugins: [react()],
   resolve: {
